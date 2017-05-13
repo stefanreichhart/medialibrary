@@ -1,3 +1,9 @@
+# medialibrary
+
+- First bumpy steps with angular4
+- Learning only / this is all very experimental and crappy code
+- Lots of stuff left unfinished, not working
+
 # MediaLibraryAngular
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 1.0.3.
