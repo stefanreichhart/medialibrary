@@ -1,0 +1,15 @@
+<div *ngIf="media">
+
+  <h1>{{media.title}}</h1>
+
+  <ul>
+    <li>Title: {{media.title}}</li>
+    <li>UUID: {{media.uuid}}</li>
+    <li>IMDB: {{media.imdb}}</li>
+    <li>Rating: {{media.rating}}</li>
+    <li>Type: {{media.type}}</li>
+  </ul>
+
+  <a (click)="appService.goBack()">go back</a>
+  
+</div>
