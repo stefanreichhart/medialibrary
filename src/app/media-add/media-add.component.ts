@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 
 import { Media } from '../shared/media';
+import { AppService } from '../app.service';
 import { MediaLookupService } from '../shared/media-lookup.service';
 import { DefaultMediaService } from '../shared/default-media.service';
 
@@ -18,8 +19,9 @@ export class MediaAddComponent implements OnInit {
   private error: any;
 
   constructor(
-    private mediaLookupService: MediaLookupService,
-    private mediaService: DefaultMediaService
+    private appService: AppService,
+    private mediaService: DefaultMediaService,
+    private mediaLookupService: MediaLookupService
   ) { }
 
   ngOnInit() {
@@ -45,7 +47,7 @@ export class MediaAddComponent implements OnInit {
   }
 
   private shouldSearch(searchText: string): boolean {
-    return searchText && searchText.trim() && this.searchText != searchText;
+    return this.appService.apiKeyTmdb && searchText && searchText.trim() && this.searchText != searchText;
   }
 
   hasSearchInput(): boolean {

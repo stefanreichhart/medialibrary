@@ -17,7 +17,7 @@ export class MediaLookupService {
 
   searchMovies(searchText: string): Promise<Media[]> {
     let url = `https://api.themoviedb.org/3/search/movie?api_key=${this.appService.apiKeyTmdb}&query=${searchText}`;
-    return this.request(url, 'genres')
+    return this.request(url, 'results')
       .then(results => {
         let medias = [];
         results.forEach(each => {
@@ -44,6 +44,8 @@ export class MediaLookupService {
 
   private request(url: string, key: string): Promise<any[]> {
     let localStorageResponse = this.loadResponseFromLocalStorage(url);
+    console.log(url);
+    console.log(localStorageResponse);
     return (localStorageResponse ? this.localRequest(localStorageResponse, key) : this.remoteRequest(url, key));
   }
 
