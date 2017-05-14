@@ -7,7 +7,7 @@ export class UuidService {
 
   constructor() { }
 
-  generate(length: number = 32): string {
+  generate(length: number = 8): string {
     return Array(length).join().split(',').map(() => { 
       return this.chars.charAt(Math.floor(Math.random() * this.chars.length)); 
     }).join('');

@@ -7,9 +7,15 @@ import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { MediasComponent } from './medias/medias.component';
 import { AppService } from './app.service';
+import { UuidService } from './shared/uuid.service';
 import { DefaultMediaService } from './shared/default-media.service';
 import { MockMediaService } from './shared/mock-media.service';
+import { MediaLookupService } from './shared/media-lookup.service';
 import { MediaDetailsComponent } from './media-details/media-details.component';
+import { ToolbarComponent } from './toolbar/toolbar.component';
+import { MediaAddComponent } from './media-add/media-add.component';
+import { BackButtonComponent } from './back-button/back-button.component';
+import { PreferencesComponent } from './preferences/preferences.component';
 
 export const USE_MOCK_SERVICE: boolean = true;
 
@@ -17,7 +23,11 @@ export const USE_MOCK_SERVICE: boolean = true;
   declarations: [
     AppComponent,
     MediasComponent,
-    MediaDetailsComponent
+    MediaDetailsComponent,
+    ToolbarComponent,
+    MediaAddComponent,
+    BackButtonComponent,
+    PreferencesComponent
   ],
   imports: [
     BrowserModule,
@@ -27,7 +37,9 @@ export const USE_MOCK_SERVICE: boolean = true;
   ],
   providers: [
     AppService,
-    { provide: DefaultMediaService, useClass: USE_MOCK_SERVICE ? MockMediaService : DefaultMediaService }
+    UuidService,
+    { provide: DefaultMediaService, useClass: USE_MOCK_SERVICE ? MockMediaService : DefaultMediaService },
+    MediaLookupService
   ],
   bootstrap: [AppComponent]
 })

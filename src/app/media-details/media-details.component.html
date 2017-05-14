@@ -3,13 +3,22 @@
   <h1>{{media.title}}</h1>
 
   <ul>
+    <li *ngIf="media.poster"><img src="http://image.tmdb.org/t/p/w150/{{media.poster}}" /></li>
     <li>Title: {{media.title}}</li>
+    <li>Original Title: {{media.originalTitle}}</li>
+    <li>Original Language: {{media.originalLanguage}}</li>
+    <li>Released: {{media.released | date}}</li>
+    <li>Added: {{media.added | date}}</li>
+    <li>Description: {{media.description}}</li>
     <li>UUID: {{media.uuid}}</li>
     <li>IMDB: {{media.imdb}}</li>
     <li>Rating: {{media.rating}}</li>
     <li>Type: {{media.type}}</li>
+    <li>Genres:
+      <span *ngFor="let genre of genres">{{genre}}</span>
+    </li>
   </ul>
 
-  <a (click)="appService.goBack()">go back</a>
+  <app-back-button></app-back-button>
   
 </div>

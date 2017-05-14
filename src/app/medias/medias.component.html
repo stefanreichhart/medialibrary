@@ -2,6 +2,6 @@
 
 <ul>
   <li *ngFor="let media of medias">
-    <a class="media" [routerLink]="[ '/media', media.uuid ]">{{media.title}}</a>
+    <a class="media" [routerLink]="[ '/', 'media', media.uuid ]">{{media.title}}</a>
   </li>
 </ul>
