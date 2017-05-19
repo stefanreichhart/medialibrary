@@ -32,19 +32,19 @@ router.get('/tmdb/movies/:source/:sourceId/:language?', (request, response) => {
 router.get('/tmdb/movie/:tmdbId', (request, response) => { library.tmdbMovie(request, response); });
 router.get('/tmdb/genres/:language?', (request, response) => { library.tmdbGenres(request, response); });
 
-router.get('/library/lists', (request, response) => { });
+// router.get('/library/lists', (request, response) => { });
 
-router.get('/library/list/:uuid', (request, response) => {});
-router.put('/library/list/:uuid', (request, response) => {});
-router.post('/library/list/:uuid', (request, response) => {});
-router.delete('/library/list/:uuid', (request, response) => {});
+// router.get('/library/list/:uuid', (request, response) => {});
+// router.put('/library/list/:uuid', (request, response) => {});
+// router.post('/library/list/:uuid', (request, response) => {});
+// router.delete('/library/list/:uuid', (request, response) => {});
 
 router.get('/library/movies', (request, response) => { library.getMovies(request, response); });
 
-router.get('/library/movie/:uuid', (request, response) => { lbrary.getMovie(request, response); });
-router.put('/library/movie/:uuid', (request, response) => {});
-router.post('/library/movie/:uuid', (request, response) => {});
-router.delete('/library/movie/:uuid', (request, response) => {});
+router.get('/library/movie/:uuid', (request, response) => { library.getMovie(request, response); });
+// router.put('/library/movie/:uuid', (request, response) => {});
+// router.post('/library/movie/:uuid', (request, response) => {});
+// router.delete('/library/movie/:uuid', (request, response) => {});
 
 router.put('/library/import/:source/:language?', (request, response) => { library.tmdbImport(request, response); });
 

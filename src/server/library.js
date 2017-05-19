@@ -74,7 +74,7 @@ Library.prototype.tmdbExternalMovie = function(request, response, fnComplete) {
                     self._onHandleResult(response, document.tmdb, answer, fnComplete);
                 }
             });
-        }
+        })
         .catch(error => { 
             self._onHandleError(response, error, message, answer);
         });
@@ -163,7 +163,7 @@ Library.prototype.tmdbImport = function(request, response, fnComplete) {
         answer.results = ids;
         if (ids && ids.length > 0) {
             for (let i=0; i<ids.length; i++) {
-                let id = ids[i];}
+                let id = ids[i];
                 let fakeExternalMovieRequest = { params: { source: source, sourceId: id, language: language } };
                 self.scheduler.add((task, onComplete, onError) => {
                     try {
@@ -178,20 +178,22 @@ Library.prototype.tmdbImport = function(request, response, fnComplete) {
                     }
                 });
             }
-        } 
+        }
         response.json(answer);
     } catch (error) {
         self._onHandleError(response, error, message, answer);
     }
 };
 
-Library.prototype.getStats = function(request, response) {
+Library.prototype.getStats = function(request, response, fnComplete) {
     response.json(Object.assign({}, this.stats, {
         scheduler: this.scheduler.getStats()
     }));
 };
 
-Library.prototype.getMovies = function(request, response) {
+Library.prototype.getMovies = function(request, response, fnComplete) {
+    let self = this;
+    let message = `Getting movies`;
     let answer = self.createAnswer({ type: 'movies', results: [] });
     self.mongodb()
         .then(db => { 
@@ -212,9 +214,11 @@ Library.prototype.getMovies = function(request, response) {
         });
 };
 
-Library.prototype.getMovie = function(request, response) {
+Library.prototype.getMovie = function(request, response, fnComplete) {
+    let self = this;
     let uuid = request.params.uuid;
     assert.defined(uuid);
+    let message = `Getting movie <${uuid}>`;
     let answer = self.createAnswer({ type: 'movies', uuid: uuid, results: [] });
     self.mongodb()
         .then(db => { 
@@ -328,7 +332,7 @@ Library.prototype._onHandleResult = function(response, results, answer, fnComple
     this._apply(fnComplete, answer);
 };
 
-Library.prototype._onHandleEmptyResult = function(response, httpResponse, message, answer) {
+Library.prototype._onHandleEmptyResult = function(response, httpResponse, message, answer, fnComplete) {
     this.stats.cacheMiss++;
     this.stats.emptyResults++;
     answer.cache = false;
