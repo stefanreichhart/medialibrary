@@ -1,153 +1,123 @@
+let Promise = require('promise');
 let http = require('request-promise');
-let mongodb = require('mongodb').MongoClient;
+var mongodb = require('mongodb-bluebird');
 
 let uuid = require('./uuid');
 let assert = require('./assert');
+let exceptions = require('./exceptions');
 let Scheduler = require('./scheduler');
 
 let Library = exports = module.exports = function() { };
 
-Library.prototype.tmdbSearch = function(request, response, fnComplete) {
+Library.prototype.tmdbSearch = function(searchText, resolve, reject) {
     let self = this;
-    let searchText = self.normalize(request.params.search);
-    assert.defined(searchText);
-    let url = `${self.options.apiUrl}/search/movie?api_key=${self.options.apiKeyTmdb}&query=${searchText}`;
-    let message = `Searching for <${searchText}>`;
-    let answer = self.createAnswer({ type: 'tmdb/search', url: url });
-    self.mongodb()
-        .then(db => { 
-            db.collection('tmdb/search', (error, collection) => {
-                assert.notDefined(error);
-                collection.findOne({ searchText: searchText }, {}, (error, document) => {
-                    assert.notDefined(error);
-                    if (document === null) {
-                        http({ uri: url, json: true})
-                            .then(httpResponse => {
-                                if (httpResponse && httpResponse.results && httpResponse.results.length > 0) {
-                                    let newDocument = self.createDocument({ searchText: searchText, tmdb: httpResponse });
-                                    collection.save(newDocument, (error, savedDocument) => {
-                                        self._onHandleSaved(response, error, savedDocument, httpResponse, answer, fnComplete);
-                                    });
-                                } else {
-                                    self._onHandleEmptyResult(response, httpResponse, message, answer, fnComplete);
-                                }
-                            });
-                    } else {
-                        self._onHandleResult(response, document.tmdb, answer, fnComplete);
-                    }
-                });
-            });
-        })
-        .catch(error => { 
-            self._onHandleError(response, error, message, answer); 
-        });
+    self._onCacheLookup(
+        'tmdb/search', 
+        `Searching for movies matching ${searchText}`,
+        { searchText: searchText },
+        (collection) => collection.findOne({ searchText: searchText }),
+        `${self.options.apiUrl}/search/movie?api_key=${self.options.apiKeyTmdb}&query=${searchText}`,
+        (httpResponse) => httpResponse && httpResponse.results && httpResponse.results.length > 0,
+        (httpResponse) => self._createDocument({ searchText: searchText, response: httpResponse.results }),
+        resolve,
+        reject
+    );
 };
 
-Library.prototype.tmdbExternalMovie = function(request, response, fnComplete) {
+Library.prototype.tmdbExternalMovie = function(source, sourceId, language, resolve, reject) {
     let self = this;
-    let id = request.params.sourceId;
-    assert.defined(sourceId);
-    let source = request.params.source;
-    assert.defined(source);
-    let language = self.normalize(request.params.language) || 'en';
-    let url = `${apiUrl}/find/${id}?api_key=${apiKeyTmdb}&language=${language}&external_source=${source}`;
-    let message = `Retrieving movie <${id}> from external source ${source}`;
-    let answer = self.createAnswer({ type: 'tmdb/external', url: url, id: id, source: source, language: language });
-    self.mongodb()
-        .then(db => { 
-            let collection = db.collection('tmdb/external');
-            collection.findOne({ id: id, source: source }, {}, (error, document) => {
-                assert.notDefined(error);
-                if (document === null) {
-                    console.log(message);
-                    http({ uri: url, json: true }).then(httpResponse => {
-                        if (httpResponse && httpResponse && Object.keys(httpResponse).length > 0) {
-                            let newDocument = self.createDocument({ id: id, source: source, tmdb: httpResponse });
-                            collection.save(newDocument, (error, savedDocument) => {
-                                self._onHandleSaved(response, error, savedDocument, httpResponse, answer, fnComplete);
-                            });
-                        } else {
-                            self._onHandleEmptyResult(response, httpResponse, message, answer, fnComplete);
-                        }
+    self._onCacheLookup(
+        'tmdb/external', 
+        `Searching for movie ${sourceId} at ${source}`,
+        { source: source, sourceId: sourceId },
+        (collection) => collection.findOne({ id: id, source: source }),
+        `${apiUrl}/find/${id}?api_key=${apiKeyTmdb}&language=${language}&external_source=${source}`,
+        (httpResponse) => httpResponse && httpResponse && Object.keys(httpResponse).length > 0,
+        (httpResponse) => self._createDocument({ source: source, sourceId: sourceId, response: httpResponse }),
+        resolve,
+        reject
+    );
+};
+
+Library.prototype.tmdbMovie = function(tmdbId, resolve, reject) {
+    let self = this;
+    self._onCacheLookup(
+        'tmdb/movie', 
+        `Requesting details for movie ${tmdbId}`,
+        { tmdbId: tmdbId },
+        (collection) => collection.findOne({ tmdbId: tmdbId }),
+        `${apiUrl}/movie/${id}?api_key=${apiKeyTmdb}`,
+        (httpResponse) => httpResponse && Object.keys(httpResponse).length > 0,
+        (httpResponse) => self._createDocument({ tmdbId: tmdbId, response: httpResponse }),
+        resolve,
+        reject
+    );
+};
+
+Library.prototype.tmdbGenres = function(language, resolve, reject) {
+    let self = this;
+    self._onCacheLookup(
+        'tmdb/genres', 
+        `Requesting genres for ${language}`,
+        { language: language },
+        (collection) => collection.findOne({ language: language }),
+        `${apiUrl}/genre/movie/list?api_key=${apiKeyTmdb}&language=${language}`,
+        (httpResponse) => httpResponse && httpResponse.genres && httpResponse.genres.length > 0,
+        (httpResponse) => self._createDocument({ language: language, response: httpResponse }),
+        resolve,
+        reject
+    );
+};
+
+Library.prototype.getMovie = function(uuid) {
+    let self = this;
+    self._onLookup(
+        'movies',
+        `Get movie ${uuid}`,
+        (collection) => collection.findOne({ uuid: uuid }),
+        (result) => (result !== null),
+        null,
+        resolve,
+        reject
+    );
+};
+
+Library.prototype.addMovie = function(tmdbId, resolve, reject) {
+    let self = this;
+    let message = ` Add movie ${tmdbid}`;
+    let answer = { uuid: null, tmdbId: tmdbId };
+    self.tmdbMovie(
+        tmdbId,
+        (result) => {
+            if (result.response && Object.keys(result.response) > 0) {
+                self._mongodb()
+                    .then(db => {
+                        let movies = db.collection('movies');
+                        answer = Object.assign(answer, { uuid: uuid.generate() }, result.response);
+                        movies.save(answer.document)
+                            .then(savedDocument => self._onResolve(resolve, answer))
+                            .catch(error => self._onReject(reject, answer, error, message))
                     })
-                } else {
-                    self._onHandleResult(response, document.tmdb, answer, fnComplete);
-                }
-            });
-        })
-        .catch(error => { 
-            self._onHandleError(response, error, message, answer);
-        });
+                    .catch(error => self._onReject(reject, answer, error, message));
+            } else {
+                self._onReject(reject, answer, error, message)
+            }
+        },
+        reject
+    );
 };
 
-Library.prototype.tmdbMovie = function(request, response, fnComplete) {
+Library.prototype.getMovies = function() {
     let self = this;
-    let id = Number.parseInt(request.params.tmdbId);
-    assert.defined(id);
-    let url = `${apiUrl}/movie/${id}?api_key=${apiKeyTmdb}`;
-    let message = `Retrieving movie <${id}>`;
-    let answer = self.createAnswer({ type: 'tmdb/movie', url: url, id: id });
-    self.mongodb()
-        .then(db => { 
-            let collection = db.collection('tmdb/movie');
-            collection.findOne({ id: id }, {}, (error, document) => {
-                assert.notDefined(error);
-                if (document === null) {
-                    console.log(message);
-                    http({ uri: url, json: true }).then(httpResponse => {
-                        if (httpResponse && Object.keys(httpResponse).length > 0) {
-                            let newDocument = self.createDocument({ id: id, tmdb: httpResponse });
-                            collection.save(newDocument, (error, savedDocument) => {
-                                self._onHandleSaved(response, error, savedDocument, httpResponse, answer, fnComplete);
-                            });
-                        } else {
-                            self._onHandleEmptyResult(response, httpResponse, message, answer, fnComplete);
-                        }
-                    })
-                } else {
-                    self._onHandleResult(response, document.tmdb, answer, fnComplete);
-                }
-            } )
-        })
-        .catch(error => { 
-            self._onHandleError(response, error, message, answer);
-        });
-};
-
-Library.prototype.tmdbGenres = function(request, response, fnComplete) {
-    let self = this;
-    let language = self.normalize(request.params.language) || 'en';
-    let url = `${apiUrl}/genre/movie/list?api_key=${apiKeyTmdb}&language=${language}`;
-    let message = `Searching for genres <${language}>`;
-    let answer = self.createAnswer({ type: 'tmdb/genres', url: url, language: language });
-    self.mongodb()
-        .then(db => { 
-            db.collection('tmdb/genres', (error, collection) => {
-                assert.notDefined(error);
-                collection.findOne({ language: language }, {}, (error, document) => {
-                    assert.notDefined(error);
-                    if (document === null) {
-                        console.log(message);
-                        http({ uri: url, json: true})
-                            .then(httpResponse => {
-                                if (httpResponse && httpResponse.genres && httpResponse.genres.length > 0) {
-                                    let newDocument = self.createDocument({ language: language, tmdb: httpResponse });
-                                    collection.save(newDocument, (error, savedDocument) => {
-                                        self._onHandleSaved(response, error, savedDocument, httpResponse, answer, fnComplete);
-                                    });
-                                } else {
-                                    self._onHandleEmptyResult(response, httpResponse, message, answer, fnComplete);
-                                }
-                            });
-                    } else {
-                        self._onHandleResult(response, document.tmdb, answer, fnComplete);
-                    }
-                });
-            });
-        })
-        .catch(error => { 
-            self._onHandleError(response, error, message, answer);
-        });
+    self._onLookup(
+        'movies',
+        `Get movies`,
+        (collection) => collection.find({}),
+        (result) => (result !== null && results.length > 0),
+        [],
+        resolve,
+        reject
+    );
 };
 
 Library.prototype.tmdbImport = function(request, response, fnComplete) {
@@ -155,9 +125,9 @@ Library.prototype.tmdbImport = function(request, response, fnComplete) {
     let ids = [];
     let source = request.params.source;
     assert.defined(source);
-    let language = self.normalize(request.params.language) || 'en';
+    let language = util.normalizeParameter(request.params.language) || 'en';
+    let answer = self._createAnswer({ type: 'library/import', results: ids });
     let message = `Importing movies from imdb ids <${ids}>`;
-    let answer = self.createAnswer({ type: 'library/import', results: ids });
     try {
         ids = request.body || [];
         answer.results = ids;
@@ -185,58 +155,13 @@ Library.prototype.tmdbImport = function(request, response, fnComplete) {
     }
 };
 
-Library.prototype.getStats = function(request, response, fnComplete) {
-    response.json(Object.assign({}, this.stats, {
-        scheduler: this.scheduler.getStats()
-    }));
+Library.prototype.getStats = function() {
+    return Object.assign({}, this.stats, { scheduler: this.scheduler.getStats() });
 };
 
-Library.prototype.getMovies = function(request, response, fnComplete) {
-    let self = this;
-    let message = `Getting movies`;
-    let answer = self.createAnswer({ type: 'movies', results: [] });
-    self.mongodb()
-        .then(db => { 
-            db.collection('movies', (error, collection) => {
-                assert.notDefined(error);
-                collection.find({}, (error, documents) => {
-                    assert.notDefined(error);
-                    if (documents !== null && documents.length > 0) {
-                        self._onHandleResult(response, documents, answer, fnComplete);
-                    } else {
-                        self._onHandleEmptyResult(response, [], message, answer, fnComplete);
-                    }
-                });
-            });
-        })
-        .catch(error => { 
-            self._onHandleError(response, error, message, answer);
-        });
-};
-
-Library.prototype.getMovie = function(request, response, fnComplete) {
-    let self = this;
-    let uuid = request.params.uuid;
-    assert.defined(uuid);
-    let message = `Getting movie <${uuid}>`;
-    let answer = self.createAnswer({ type: 'movies', uuid: uuid, results: [] });
-    self.mongodb()
-        .then(db => { 
-            db.collection('movies', (error, collection) => {
-                assert.notDefined(error);
-                collection.find({ uuid: uuid }, (error, documents) => {
-                    assert.notDefined(error);
-                    if (documents !== null && documents.length > 0) {
-                        self._onHandleResult(response, documents, answer, fnComplete);
-                    } else {
-                        self._onHandleEmptyResult(response, [], message, answer, fnComplete);
-                    }
-                });
-            });
-        })
-        .catch(error => { 
-            self._onHandleError(response, error, message, answer);
-        });
+Library.prototype.restart = function() {
+    this.scheduler.restart();
+    return this.getStats();
 };
 
 // init
@@ -253,28 +178,29 @@ Library.prototype.initialize = function(options) {
         cacheMiss: 0,
         emptyResults: 0,
         savedDocuments: 0,
+        resolved: 0,
         errors: 0
     };
-    this._setupMongoDb();
+    this._setup_mongodb();
     this._setupScheduler();
     return this;
 };
 
-Library.prototype._setupMongoDb = function() {
-    let self = this;
-    self.mongodb()
+Library.prototype._setup_mongodb = function() {
+    var self = this;
+    self._mongodb()
         .then(db => {
             Promise
-                .all(self.options.mongoCollections.map(name => db.createCollection(name)))
-                .catch(error => {
-                    console.log('Error while creating mongo db tables: ' + error);
-                    process.exit(2);
-                });
+                .all(self.options.mongoCollections.map(name => { 
+                    return db.createCollection(name, {}, (error, collection) => {
+                        if (error) {
+                            exceptions.exit(error, `Creating mongo db collection ${name}`)
+                        }
+                    });
+                }))
+                .catch(error => exceptions.exit(error, 'Creating mongo db collections'));
         })
-        .catch(error => {
-            console.log('Error while connecting to mongo db: ' + error);
-            process.exit(1);
-        });
+        .catch(error => exceptions.exit(error, 'Connecting to mongo db'));
 };
 
 Library.prototype._setupScheduler = function() {
@@ -282,19 +208,12 @@ Library.prototype._setupScheduler = function() {
     this.scheduler.initialize();
 };
 
-// utils
-// // // // // // // // // // // // // // // // // // // // // // // // // // //
-
-Library.prototype.mongodb = function() {
+Library.prototype._mongodb = function() {
     this.stats.mongoConnectionsOpened++;
     return mongodb.connect(this.options.mongoUrl);
 };
 
-Library.prototype.normalize = function(text) {
-    return ('' + (text || '')).replace(/ /g, '+').toLowerCase().trim();;
-};
-
-Library.prototype.createAnswer = function(params) {
+Library.prototype._createAnswer = function(params) {
     return Object.assign({
         type: null,
         url: null,
@@ -303,69 +222,98 @@ Library.prototype.createAnswer = function(params) {
     }, params || {});
 };
 
-Library.prototype.createDocument = function(params) {
+Library.prototype._createDocument = function(document) {
     let now = Date.now();
-    return Object.assign({ results: [], created: now, modified: now }, params || {});
+    return Object.assign({ response: null, created: now, modified: now }, document || {});
 };
 
-Library.prototype._onHandleError = function(response, error, message) {
-    this._onError(error, message);
-    answer.error = error.message;
-    this._onHandleErrorAnswer(response, answer); 
+Library.prototype._onLookup = function(name, message, fnGetDocument, defaultResult, fnCacheCondition, resolve, reject) {
+    let self = this;
+    let answer = { result: defaultResult };
+    self._mongodb()
+        .then(db => { 
+            let collection = db.collection(name);
+            fnGetDocument(collection)
+                .then(result => { 
+                    if (fnCacheCondition(result)) {
+                        answer = Object.assign({}, answer, { result: result });   
+                    }
+                    self._onResolve(resolve, answer);
+                })
+                .catch(error => self._onReject(reject, answer, error, message));
+        })
+        .catch(error => self._onReject(reject, answer, error, message));
 };
 
-Library.prototype._onHandleSaved = function(response, error, saveDocument, results, answer, fnComplete) {
-    this.stats.cacheMiss++;
-    this.stats.savedDocuments++;
-    assert.notDefined(error);
-    answer.cache = false;
-    answer.results = results;
-    this._onHandleAnswer(response, answer);
-    this._apply(fnComplete, answer);
+Library.prototype._onCacheLookup = function(name, message, parameters, fnGetDocument, url, fnCacheCondition, fnNewDocument, resolve, reject) {
+    let self = this;
+    let answer = Object.assign({}, parameters || {});
+    self._mongodb()
+        .then(db => {
+            let collection = db.collection(name);
+            fnGetDocument(collection)
+                .then(document => {
+                    if (document === null) {
+                        answer = Object.assign(answer, { url: url });
+                        http({ uri: url, json: true})
+                            .then(httpResponse => {
+                                if (fnCacheCondition(httpResponse)) {
+                                    let newDocument = fnNewDocument(httpResponse);
+                                    collection.save(newDocument)
+                                        .then(savedDocument => self._onResolve(resolve, answer, newDocument, db))
+                                        .catch(documentError => self._onReject(reject, answer, documentError, db, message));
+                                } else {
+                                    self._onResolve(resolve, answer, null, db);
+                                }
+                            })
+                            .catch(httpError => self._onReject(reject, answer, httpError, db, message));
+                    } else {
+                        self._onResolve(resolve, answer, document, db);
+                    }
+                })
+                .catch(queryError =>  self._onReject(reject, answer, queryError, db, message));
+        })
+        .catch(dbError => self._onReject(reject, answer, dbError, null, message));
 };
 
-Library.prototype._onHandleResult = function(response, results, answer, fnComplete) {
-    this.stats.cacheHits++;
-    answer.cache = true;    
-    answer.results = results;
-    this._onHandleAnswer(response, answer);
-    this._apply(fnComplete, answer);
-};
-
-Library.prototype._onHandleEmptyResult = function(response, httpResponse, message, answer, fnComplete) {
-    this.stats.cacheMiss++;
-    this.stats.emptyResults++;
-    answer.cache = false;
-    console.log(`[WARNING] ${message}`)
-    console.log(httpResponse);
-    this._onHandleAnswer(response, answer);
-    this._apply(fnComplete, answer);
-};
-
-Library.prototype._onHandleAnswer = function(response, answer) {
-    if (response && response.json && typeof response.json == "function") {
-        response.json(answer);
-    }
-};
-
-Library.prototype._onHandleErrorAnswer = function(response, answer) {
-    if (response && response.status && response.json && typeof response.json == "function") {
-        response.status(500).json(answer); 
-    }
-};
-
-Library.prototype._apply = function(fn, argument) {
+Library.prototype._onResolve = function(resolve, answer, document, db) {
     try {
-        if (fn && typeof fn == 'function') {
-            fn(argument);
+        this.stats.resolved++;
+        let finalAnswer = Object.assign({}, answer || {}, { document: document });
+        if (resolve && typeof resolve == 'function') {
+            resolve(finalAnswer);
         }
-    } catch (error) {
-        this._onError(error);
+    } catch (fatal) {
+        this._onFatal(fatal, answer, 'Resolving answer');
+    } finally {
+        if (db && db.close) {
+            db.close();
+        }
     }
 };
 
-Library.prototype._onError = function(error, message) {
-    this.stats.errors++;
-    console.log(`[ERROR] ${message}`);
+Library.prototype._onReject = function(reject, answer, error, db, message) {
+    try {
+        this.stats.errors++;
+        let finalAnswer = Object.assign({}, answer || {}, { message: message || '', error: (error ? error.message : null) || 'UNKNOWN' });
+        console.log(`[ERROR] ${message}`);
+        console.log(finalAnswer);
+        console.log(error);
+        if (reject && typeof reject == 'function') {
+            reject(finalAnswer, error);
+        }
+    } catch (fatal) {
+        this._onFatal(fatal, answer, 'Rejecting error', error);
+    } finally {
+        if (db && db.close) {
+            db.close();
+        }
+    }
+};
+
+Library.prototype._onFatal = function(fatal, answer, message, error) {
+    console.log(`[FATAL] ${message}`);
+    console.log(answer);
+    console.log(fatal);
     console.log(error);
 };
