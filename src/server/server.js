@@ -55,6 +55,7 @@ request.get(router, '/tmdb/movies/:source/:sourceId/:language?', (request, respo
     assert.defined(source, 'Source must not be empty');
     assert.defined(sourceId, 'Source ID must not be empty');
     assert.defined(language, 'Language must not be empty');
+    assert.any([ 'imdb_id' /*, 'freebase_mid', 'freebase_id', 'tvdb_id', 'tvrage_id' */ ], source, `Unsupported source ${source}`);
     library.tmdbExternalMovie(source, sourceId, language, resolve, reject);
 });
 
@@ -84,7 +85,7 @@ request.get(router, '/library/movies', (request, response, resolve, reject) => {
 request.get(router, '/library/movie/:uuid', (request, response, resolve, reject) => {
     let uuid = util.normalizeText(request.params.uuid);
     assert.defined(uuid);
-    library.getMovies(uuid, resolve, reject);
+    library.getMovie(uuid, resolve, reject);
 });
 
 request.put(router, '/library/movie/:tmdbId', (request, response, resolve, reject) => {
@@ -112,8 +113,10 @@ request.put(router, '/library/import/:source/:language?', (request, response, re
     let sourceIds = request.body || [];
     let language = util.normalizeText(request.params.language) || 'en';
     assert.defined(source, 'Source must not be empty');
-    assert.notEmpty(sourceIds, 'Source Ids must not be empty');
+    console.log(sourceIds);
+    //assert.notEmpty(sourceIds, 'Source Ids must not be empty');
     assert.defined(language, 'Language must not be empty');
+    assert.any([ 'imdb_id' /*, 'freebase_mid', 'freebase_id', 'tvdb_id', 'tvrage_id' */ ], source, `Unsupported source ${source}`);
     library.importMovies(source, sourceIds, language, resolve, reject);
 });
 

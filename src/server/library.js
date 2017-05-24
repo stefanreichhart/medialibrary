@@ -10,6 +10,7 @@ let Scheduler = require('./scheduler');
 
 let Library = exports = module.exports = function() { };
 
+// ok
 Library.prototype.tmdbSearch = function(searchText, resolve, reject) {
     let self = this;
     self._onCacheLookup(
@@ -25,9 +26,9 @@ Library.prototype.tmdbSearch = function(searchText, resolve, reject) {
     );
 };
 
+// ok
 Library.prototype.tmdbExternalMovie = function(source, sourceId, language, resolve, reject) {
     let self = this;
-    assert.any([ 'imdb_id' /*, 'freebase_mid', 'freebase_id', 'tvdb_id', 'tvrage_id' */ ], source, `Unsupported source ${source}`);
     self._onCacheLookup(
         'tmdb/external', 
         `Searching for movie ${sourceId} at ${source}`,
@@ -41,6 +42,7 @@ Library.prototype.tmdbExternalMovie = function(source, sourceId, language, resol
     );
 };
 
+//ok
 Library.prototype.tmdbMovie = function(tmdbId, resolve, reject) {
     let self = this;
     self._onCacheLookup(
@@ -56,6 +58,7 @@ Library.prototype.tmdbMovie = function(tmdbId, resolve, reject) {
     );
 };
 
+// ok
 Library.prototype.tmdbGenres = function(language, resolve, reject) {
     let self = this;
     self._onCacheLookup(
@@ -71,34 +74,35 @@ Library.prototype.tmdbGenres = function(language, resolve, reject) {
     );
 };
 
-Library.prototype.getMovie = function(uuid) {
+// ok
+Library.prototype.getMovie = function(uuid, resolve, reject) {
     let self = this;
     self._onLookup(
         'movies',
         `Get movie ${uuid}`,
         (collection) => collection.findOne({ uuid: uuid }),
-        (result) => (result !== null),
+        (answer) => (answer !== null),
         null,
         resolve,
         reject
     );
 };
 
+// ok
 Library.prototype.addMovie = function(tmdbId, resolve, reject) {
     let self = this;
     let message = ` Add movie ${tmdbId}`;
     let answer = { action: 'add/movie', uuid: null, tmdbId: tmdbId };
     self.tmdbMovie(
         tmdbId,
-        (answer) => {
-            console.log(result);
-            if (answer.document && Object.keys(answer.document) > 0) {
+        (response) => {
+            if (response && response.result && Object.keys(response.result).length > 0) {
                 self._mongodb()
                     .then(db => {
                         let movies = db.collection('movies');
-                        answer = Object.assign(answer, { uuid: uuid.generate() }, answer.document.response);
-                        movies.save(answer.document)
-                            .then(savedDocument => self._onResolve(resolve, answer))
+                        let document = Object.assign({ uuid: uuid.generate(), tmdb: response.result });
+                        movies.save(document)
+                            .then(savedDocument => self._onResolve(resolve, document))
                             .catch(error => self._onReject(reject, answer, error, message))
                     })
                     .catch(error => self._onReject(reject, answer, error, message));
@@ -110,6 +114,7 @@ Library.prototype.addMovie = function(tmdbId, resolve, reject) {
     );
 };
 
+// TODO
 Library.prototype.updateMovie = function(uuid, data, resolve, reject) {
     let self = this;
     let answer = { action: 'update/movie', uuid: uuid };
@@ -134,16 +139,18 @@ Library.prototype.updateMovie = function(uuid, data, resolve, reject) {
         reject);
 };
 
+// ok
 Library.prototype.removeMovie = function(uuid, resolve, reject) {
     let self = this;
     let answer = { action: 'remove/movie', uuid: uuid };
     self.withMovieDo(
         uuid,
-        (movie, document) => { 
+        (document) => { 
             self._mongodb()
                 .then(db => {
                     let movies = db.collection('movies');
-                    movies.remove(document)
+                    console.log(document);
+                    movies.remove({ _id: document._id })
                         .then(result => { 
                             answer = Object.assign(answer, { status: 'ok' });
                             // TODO: remove reference from all lists
@@ -160,17 +167,18 @@ Library.prototype.removeMovie = function(uuid, resolve, reject) {
         reject);
 };
 
+// ok 
 Library.prototype.withMovieDo = function(uuid, resolve, resolveNone, reject) {
     let self = this;
     self._onLookup(
         'movies',
         `With movie ${uuid} do ...`,
-        (collection) => collection.findOne({ uuid: uuid}),
-        (answer) => (answer !== null && Object.keys(answer.result).length > 0),
+        (collection) => collection.findOne({ uuid: uuid }),
+        (answer) => (answer !== null && Object.keys(answer).length > 0),
         null,
         (answer) => { 
-            if (answer.result) {
-                resolve(answer.result, answer);
+            if (answer && answer.result) {
+                resolve(answer.result);
             } else {
                 resolveNone();
             }
@@ -179,6 +187,7 @@ Library.prototype.withMovieDo = function(uuid, resolve, resolveNone, reject) {
     );
 };
 
+// ok
 Library.prototype.getMovies = function(resolve, reject) {
     let self = this;
     self._onLookup(
@@ -195,7 +204,7 @@ Library.prototype.getMovies = function(resolve, reject) {
 Library.prototype.importMovies = function(source, sourceIds, language, resolve, reject) {
     let self = this;
     let answer = { action: 'import/movies', source: source, sourceIds: sourceIds, language: language };
-    let message = `Scheduling import of movie <${sourceId}> from ${source}`;
+    let message = `Scheduling import of movie <${sourceIds}> from ${source}`;
     try {
         for (let i=0; i<sourceIds.length; i++) {
             let sourceId = sourceIds[i];
@@ -209,7 +218,7 @@ Library.prototype.importMovies = function(source, sourceIds, language, resolve, 
                     language, 
                     (answer) => {
                         try {
-                            let tmdbId = answer.response.movie_results[0].id;
+                            let tmdbId = answer.result.movie_results[0].id;
                             self.addMovie(tmdbId, onComplete, onError);
                         } catch (error) {
                             self._onReject(onError, answer, error, message);
@@ -350,9 +359,10 @@ Library.prototype._onLookup = function(name, message, fnGetDocument, fnCacheCond
             fnGetDocument(collection)
                 .then(result => { 
                     if (fnCacheCondition(result)) {
-                        answer = Object.assign({}, answer, { result: result });   
+                        self._onResolve(resolve, answer, result);
+                    } else {
+                        self._onResolve(resolve, answer, null);
                     }
-                    self._onResolve(resolve, answer);
                 })
                 .catch(error => self._onReject(reject, answer, error, message));
         })
@@ -374,7 +384,7 @@ Library.prototype._onCacheLookup = function(name, message, parameters, fnGetDocu
                                 if (fnCacheCondition(httpResponse)) {
                                     let newDocument = fnNewDocument(httpResponse);
                                     collection.save(newDocument)
-                                        .then(savedDocument => self._onResolve(resolve, answer, newDocument, db))
+                                        .then(savedDocument => self._onResolve(resolve, answer, newDocument.response, db))
                                         .catch(documentError => self._onReject(reject, answer, documentError, db, message));
                                 } else {
                                     self._onResolve(resolve, answer, null, db);
@@ -382,7 +392,7 @@ Library.prototype._onCacheLookup = function(name, message, parameters, fnGetDocu
                             })
                             .catch(httpError => self._onReject(reject, answer, httpError, db, message));
                     } else {
-                        self._onResolve(resolve, answer, document, db);
+                        self._onResolve(resolve, answer, document.response, db);
                     }
                 })
                 .catch(queryError =>  self._onReject(reject, answer, queryError, db, message));
@@ -393,7 +403,7 @@ Library.prototype._onCacheLookup = function(name, message, parameters, fnGetDocu
 Library.prototype._onResolve = function(resolve, answer, document, db) {
     try {
         this.stats.resolved++;
-        let finalAnswer = Object.assign({}, answer || {}, { document: document });
+        let finalAnswer = Object.assign({}, answer || {}, { result: document });
         if (resolve && typeof resolve == 'function') {
             resolve(finalAnswer);
         }

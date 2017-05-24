@@ -113,9 +113,9 @@ Scheduler.prototype._handleTask = function(task) {
 
 Scheduler.prototype._handleDuration = function(start, stop) {
     let duration = Math.max(1, stop - start);
-    this.stats.minDuration = Math.min(1, this.stats.minDuration, duration);
+    this.stats.minDuration = Math.max(1, this.stats.minDuration, duration);
     this.stats.maxDuration = Math.max(1, this.stats.maxDuration, duration);
-    this.stats.avgDuration = Math.min(1, (this.stats.avgDuration + duration) / 2);
+    this.stats.avgDuration = Math.max(1, (this.stats.avgDuration + duration) / 2);
     return duration;
 };
 
