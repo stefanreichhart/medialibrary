@@ -3,6 +3,7 @@ let http = require('request-promise');
 var mongodb = require('mongodb-bluebird');
 
 let uuid = require('./uuid');
+let Merger = require('./merger');
 let assert = require('./assert');
 let exceptions = require('./exceptions');
 let Scheduler = require('./scheduler');
@@ -26,12 +27,13 @@ Library.prototype.tmdbSearch = function(searchText, resolve, reject) {
 
 Library.prototype.tmdbExternalMovie = function(source, sourceId, language, resolve, reject) {
     let self = this;
+    assert.any([ 'imdb_id' /*, 'freebase_mid', 'freebase_id', 'tvdb_id', 'tvrage_id' */ ], source, `Unsupported source ${source}`);
     self._onCacheLookup(
         'tmdb/external', 
         `Searching for movie ${sourceId} at ${source}`,
         { source: source, sourceId: sourceId },
-        (collection) => collection.findOne({ id: id, source: source }),
-        `${apiUrl}/find/${id}?api_key=${apiKeyTmdb}&language=${language}&external_source=${source}`,
+        (collection) => collection.findOne({ source: source,sourceId: sourceId }),
+        `${self.options.apiUrl}/find/${sourceId}?api_key=${self.options.apiKeyTmdb}&language=${language}&external_source=${source}`,
         (httpResponse) => httpResponse && httpResponse && Object.keys(httpResponse).length > 0,
         (httpResponse) => self._createDocument({ source: source, sourceId: sourceId, response: httpResponse }),
         resolve,
@@ -46,7 +48,7 @@ Library.prototype.tmdbMovie = function(tmdbId, resolve, reject) {
         `Requesting details for movie ${tmdbId}`,
         { tmdbId: tmdbId },
         (collection) => collection.findOne({ tmdbId: tmdbId }),
-        `${apiUrl}/movie/${id}?api_key=${apiKeyTmdb}`,
+        `${self.options.apiUrl}/movie/${tmdbId}?api_key=${self.options.apiKeyTmdb}`,
         (httpResponse) => httpResponse && Object.keys(httpResponse).length > 0,
         (httpResponse) => self._createDocument({ tmdbId: tmdbId, response: httpResponse }),
         resolve,
@@ -61,7 +63,7 @@ Library.prototype.tmdbGenres = function(language, resolve, reject) {
         `Requesting genres for ${language}`,
         { language: language },
         (collection) => collection.findOne({ language: language }),
-        `${apiUrl}/genre/movie/list?api_key=${apiKeyTmdb}&language=${language}`,
+        `${self.options.apiUrl}/genre/movie/list?api_key=${self.options.apiKeyTmdb}&language=${language}`,
         (httpResponse) => httpResponse && httpResponse.genres && httpResponse.genres.length > 0,
         (httpResponse) => self._createDocument({ language: language, response: httpResponse }),
         resolve,
@@ -84,74 +86,141 @@ Library.prototype.getMovie = function(uuid) {
 
 Library.prototype.addMovie = function(tmdbId, resolve, reject) {
     let self = this;
-    let message = ` Add movie ${tmdbid}`;
-    let answer = { uuid: null, tmdbId: tmdbId };
+    let message = ` Add movie ${tmdbId}`;
+    let answer = { action: 'add/movie', uuid: null, tmdbId: tmdbId };
     self.tmdbMovie(
         tmdbId,
-        (result) => {
-            if (result.response && Object.keys(result.response) > 0) {
+        (answer) => {
+            console.log(result);
+            if (answer.document && Object.keys(answer.document) > 0) {
                 self._mongodb()
                     .then(db => {
                         let movies = db.collection('movies');
-                        answer = Object.assign(answer, { uuid: uuid.generate() }, result.response);
+                        answer = Object.assign(answer, { uuid: uuid.generate() }, answer.document.response);
                         movies.save(answer.document)
                             .then(savedDocument => self._onResolve(resolve, answer))
                             .catch(error => self._onReject(reject, answer, error, message))
                     })
                     .catch(error => self._onReject(reject, answer, error, message));
             } else {
-                self._onReject(reject, answer, error, message)
+                self._onReject(reject, answer, null, message)
             }
         },
         reject
     );
 };
 
-Library.prototype.getMovies = function() {
+Library.prototype.updateMovie = function(uuid, data, resolve, reject) {
+    let self = this;
+    let answer = { action: 'update/movie', uuid: uuid };
+    self.withMovieDo(
+        uuid,
+        (movie, document) => { 
+            let newData = new Merger(movie, data).get();
+            document.response = newData;
+            self._mongodb()
+                .then(db => {
+                    let movies = db.collection('movies');
+                    movies.save(document)
+                        .then(result => { 
+                            answer = Object.assign(answer, { status: 'ok' });
+                            self._onResolve(resolve, answer); 
+                        })
+                        .catch(error => error => self._onReject(reject, answer, error, message));
+                })
+                .catch(error => self._onReject(reject, answer, error, message));
+        },
+        () => self._onReject(reject, answer, error, message),
+        reject);
+};
+
+Library.prototype.removeMovie = function(uuid, resolve, reject) {
+    let self = this;
+    let answer = { action: 'remove/movie', uuid: uuid };
+    self.withMovieDo(
+        uuid,
+        (movie, document) => { 
+            self._mongodb()
+                .then(db => {
+                    let movies = db.collection('movies');
+                    movies.remove(document)
+                        .then(result => { 
+                            answer = Object.assign(answer, { status: 'ok' });
+                            // TODO: remove reference from all lists
+                            self._onResolve(resolve, answer); 
+                        })
+                        .catch(error => error => self._onReject(reject, answer, error, message));
+                })
+                .catch(error => self._onReject(reject, answer, error, message));
+        },
+        () => { 
+            answer = Object.assign(answer, { status: 'ok' });
+            self._onResolve(resolve, answer); 
+        },
+        reject);
+};
+
+Library.prototype.withMovieDo = function(uuid, resolve, resolveNone, reject) {
+    let self = this;
+    self._onLookup(
+        'movies',
+        `With movie ${uuid} do ...`,
+        (collection) => collection.findOne({ uuid: uuid}),
+        (answer) => (answer !== null && Object.keys(answer.result).length > 0),
+        null,
+        (answer) => { 
+            if (answer.result) {
+                resolve(answer.result, answer);
+            } else {
+                resolveNone();
+            }
+        },
+        reject
+    );
+};
+
+Library.prototype.getMovies = function(resolve, reject) {
     let self = this;
     self._onLookup(
         'movies',
         `Get movies`,
         (collection) => collection.find({}),
-        (result) => (result !== null && results.length > 0),
+        (answer) => (answer !== null && answer.length > 0),
         [],
         resolve,
         reject
     );
 };
 
-Library.prototype.tmdbImport = function(request, response, fnComplete) {
+Library.prototype.importMovies = function(source, sourceIds, language, resolve, reject) {
     let self = this;
-    let ids = [];
-    let source = request.params.source;
-    assert.defined(source);
-    let language = util.normalizeParameter(request.params.language) || 'en';
-    let answer = self._createAnswer({ type: 'library/import', results: ids });
-    let message = `Importing movies from imdb ids <${ids}>`;
+    let answer = { action: 'import/movies', source: source, sourceIds: sourceIds, language: language };
+    let message = `Scheduling import of movie <${sourceId}> from ${source}`;
     try {
-        ids = request.body || [];
-        answer.results = ids;
-        if (ids && ids.length > 0) {
-            for (let i=0; i<ids.length; i++) {
-                let id = ids[i];
-                let fakeExternalMovieRequest = { params: { source: source, sourceId: id, language: language } };
-                self.scheduler.add((task, onComplete, onError) => {
-                    try {
-                        self.tmdbExternalMovie(fakeExternalMovieRequest, null, (externalMovieAnswer) => {
-                            let fakeMovieRequest = { params: { tmdbId: externalMovieAnswer.id } };
-                            self.tmdbMovie(request, null, (movieAnswer) => {
-                                onComplete();
-                            });
-                        });
-                    } catch (error) {
-                        onError(error);
-                    }
-                });
-            }
+        for (let i=0; i<sourceIds.length; i++) {
+            let sourceId = sourceIds[i];
+            console.log(message);
+            self.scheduler.add((task, onComplete, onError) => {
+                let message = `Importing movie <${sourceId}> from ${source}`;
+                console.log(message);
+                self.tmdbExternalMovie(
+                    source, 
+                    sourceId, 
+                    language, 
+                    (answer) => {
+                        try {
+                            let tmdbId = answer.response.movie_results[0].id;
+                            self.addMovie(tmdbId, onComplete, onError);
+                        } catch (error) {
+                            self._onReject(onError, answer, error, message);
+                        }
+                    }, 
+                    onError);
+            }, `import/${sourceId}/${source}`);
         }
-        response.json(answer);
-    } catch (error) {
-        self._onHandleError(response, error, message, answer);
+        self._onResolve(resolve, answer); 
+    } catch(error) {
+        self._onReject(reject, answer, error, message);
     }
 };
 
@@ -176,18 +245,25 @@ Library.prototype.initialize = function(options) {
         mongoConnectionsOpened: 0,
         cacheHit: 0,
         cacheMiss: 0,
+        cacheCleaned: 0,
         emptyResults: 0,
         savedDocuments: 0,
         resolved: 0,
         errors: 0
     };
+    this._cleaner = null;
     this._setup_mongodb();
     this._setupScheduler();
+    this._setupCleaning();
     return this;
 };
 
 Library.prototype._setup_mongodb = function() {
     var self = this;
+    let resolveAll = (promises) => {
+        console.log('Creating mongo db collections done');
+        return Promise.resolve(promises);
+    };
     self._mongodb()
         .then(db => {
             Promise
@@ -198,6 +274,7 @@ Library.prototype._setup_mongodb = function() {
                         }
                     });
                 }))
+                .then(promises => resolveAll(promises))
                 .catch(error => exceptions.exit(error, 'Creating mongo db collections'));
         })
         .catch(error => exceptions.exit(error, 'Connecting to mongo db'));
@@ -206,6 +283,43 @@ Library.prototype._setup_mongodb = function() {
 Library.prototype._setupScheduler = function() {
     this.scheduler = new Scheduler();
     this.scheduler.initialize();
+};
+
+Library.prototype._setupCleaning = function() {
+    var self = this;
+    self._cleaner = setTimeout(() => {
+        let now = Date.now();
+        let past = now - (30 * 24 * 60 * 60 * 1000);
+        let resolve = (name, collection) => {
+            let removed = collection.result.n || 0;
+            self.stats.cacheCleaned = self.stats.cacheCleaned + removed;
+            console.log(`Cleaning mongo collection ${name} (${removed})`);
+            return Promise.resolve(collection);
+        };
+        let resolveAll = (collections) => {
+            console.log(`Cleaning mongo db done`);
+            return Promise.resolve(collections);
+        };
+        let reject = (error) => {
+            exceptions.error(error, 'Cleaning mongo db');
+            clearTimeout(self._cleaner);
+            self._cleaner = null;
+            return Promise.resolve(error);
+        };
+        self._mongodb()
+            .then(db => {
+                Promise
+                    .all(self.options.mongoCollections.map(name => { 
+                        return db.collection(name).remove({ modified: { $lte : past } })
+                            .then(response => resolve(name, response))
+                            .catch(error => reject(error))
+                    }))
+                    .then(promises => resolveAll(promises))
+                    .catch(error => reject(error));
+            })
+            .catch(error => reject(error));
+        
+    }, 1 * 1000);
 };
 
 Library.prototype._mongodb = function() {
@@ -227,7 +341,7 @@ Library.prototype._createDocument = function(document) {
     return Object.assign({ response: null, created: now, modified: now }, document || {});
 };
 
-Library.prototype._onLookup = function(name, message, fnGetDocument, defaultResult, fnCacheCondition, resolve, reject) {
+Library.prototype._onLookup = function(name, message, fnGetDocument, fnCacheCondition, defaultResult, resolve, reject) {
     let self = this;
     let answer = { result: defaultResult };
     self._mongodb()

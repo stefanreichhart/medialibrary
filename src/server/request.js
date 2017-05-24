@@ -4,31 +4,33 @@ let Request = function() { };
 module.exports = new Request();
 
 Request.prototype.get = function(router, url, callback) {
-    this._handleMethod(router, 'GET', url, callback);
+    this._handleMethod(router.get.bind(router), 'GET', url, callback);
 };
 
 Request.prototype.put = function(router, url, callback) {
-    this._handleMethod(router, 'PUT', url, callback);
+    this._handleMethod(router.put.bind(router), 'PUT', url, callback);
 };
 
 Request.prototype.post = function(router, url, callback) {
-    this._handleMethod(router, 'POST', url, callback);
+    this._handleMethod(router.post.bind(router), 'POST', url, callback);
 };
 
 Request.prototype.delete = function(router, url, callback) {
-    this._handleMethod(router, 'DELETE', url, callback);
+    this._handleMethod(router.delete.bind(router), 'DELETE', url, callback);
 };
 
-Request.prototype._handleMethod = function(router, method, url, callback) {
+Request.prototype._handleMethod = function(fnRouter, method, url, callback) {
     var self = this;
+    let message = `Setting up route ${method} ${url}`;
     try {
         assert.defined(url);
         assert.equals('function', typeof callback);
-        router.get(url, (request, response) => {
+        console.log(message);
+        fnRouter(url, (request, response) => {
             self._handleRequest(request, response, method, url, callback);
         });
     } catch (error) {
-        self._handleError({}, error, `Setting up route ${method} ${url}`);
+        self._handleError({}, error, message);
     }
 };
 

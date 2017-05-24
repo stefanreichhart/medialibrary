@@ -25,14 +25,28 @@ Scheduler.prototype.initialize = function() {
 Scheduler.prototype.getStats = function() {
     return Object.assign({}, this.stats, {
         queue: this.queue.length,
+        tasks: this.getTasks(),
         currentTask: !!this.currentTask,
-        timer: !!this._timer
+        timer: !!this._timer,
+        minDurationRemaining: this.options.initialDelay + (this.queue.length * (Math.max(1, this.stats.minDuration) + this.options.delayBetweenTasks)),
+        avgDurationRemaining: this.options.initialDelay + (this.queue.length * (Math.max(1, this.stats.avgDuration) + this.options.delayBetweenTasks)),
+        maxDurationRemaining: this.options.initialDelay + (this.queue.length * (Math.max(1, this.stats.maxDuration) + this.options.delayBetweenTasks))
+    });
+};
+
+Scheduler.prototype.getTasks = function() {
+    return this.queue.map(each => {
+        let task = Object.assign({}, each);
+        delete task['action'];
+        return task;
     });
 };
 
 Scheduler.prototype.start = function() {
-    console.log("Scheduler: start");
-    this.startWithDelay(this.options.initialDelay);
+    if (!this._timer) {
+        console.log("Scheduler: start");
+        this.startWithDelay(this.options.initialDelay);
+    }
 };
 
 Scheduler.prototype.startWithDelay = function(milliseconds) {
@@ -98,10 +112,10 @@ Scheduler.prototype._handleTask = function(task) {
 };
 
 Scheduler.prototype._handleDuration = function(start, stop) {
-    let duration = stop - start;
-    this.stats.minDuration = Math.min(this.stats.minDuration, duration);
-    this.stats.maxDuration = Math.max(this.stats.maxDuration, duration);
-    this.stats.avgDuration = (this.stats.avgDuration + duration) / 2;
+    let duration = Math.max(1, stop - start);
+    this.stats.minDuration = Math.min(1, this.stats.minDuration, duration);
+    this.stats.maxDuration = Math.max(1, this.stats.maxDuration, duration);
+    this.stats.avgDuration = Math.min(1, (this.stats.avgDuration + duration) / 2);
     return duration;
 };
 
@@ -128,9 +142,12 @@ Scheduler.prototype.stop = function() {
     this._timer = null;
 };
 
-Scheduler.prototype.restart = function() {
+Scheduler.prototype.restart = function(empty) {
     console.log("Scheduler: restart");
     this.stop();
+    if (empty) {
+        this.queue = [];
+    }
     this.startWithDelay(this.options.delayBetweenTasks);
 };
 
@@ -156,16 +173,6 @@ Scheduler.prototype.remove = function(fnAction, name) {
     let lengthAfter = this.queue.length;
     this.stats.removed = this.stats.removed + (lengthAfter - lengthBefore);
     this.start();
-};
-
-Scheduler.prototype._apply = function(fn, argument) {
-    try {
-        if (fn && typeof fn == 'function') {
-            fn(argument);
-        }
-    } catch (error) {
-        this._onError(error);
-    }
 };
 
 Scheduler.prototype._onError = function(error, message) {

@@ -12,7 +12,8 @@ let util = require('./util');
 
 let library = new Library();
 library.initialize({
-    apiUrl: 'https://api.themoviedb.org/3',
+    apiUrl: 'https://api.themoviedb.org/3', // todo -> db
+    apiKey: 'QrNogGHg0WNNgH4cS5HVpcD6NgLb8wBB', // todo -> bootstrap per session
     apiKeyTmdb: '9cc3876eae5c294c28fc147e4fd1c957',
     mongoUrl: `mongodb://localhost:4000/medialibrary`,
     mongoCollections: [ 'tmdb/search', 'tmdb/movie', 'tmdb/external', 'tmdb/genres', 'movies', 'library/jobs' ]
@@ -43,35 +44,31 @@ app.use('/api', router);
 
 request.get(router, '/tmdb/movies/:search', (request, response, resolve, reject) => {
     let searchText = util.normalizeParameter(request.params.search);
-    assert.defined(searchText);
+    assert.defined(searchText, 'Search text must not be empty');
     library.tmdbSearch(searchText, resolve, reject);
 });
 
 request.get(router, '/tmdb/movies/:source/:sourceId/:language?', (request, response, resolve, reject) => {
-    let source = util.normalizeText(request.params.source);
-    let sourceId = normalizeText(request.params.sourceId);
-    let language = normalizeText(request.params.language) || 'en';
-    assert.defined(source);
-    assert.defined(sourceId);
-    assert.defined(language);
+    let source = util.normalizeParameter(request.params.source);
+    let sourceId = util.normalizeText(request.params.sourceId);
+    let language = util.normalizeParameter(request.params.language) || 'en';
+    assert.defined(source, 'Source must not be empty');
+    assert.defined(sourceId, 'Source ID must not be empty');
+    assert.defined(language, 'Language must not be empty');
     library.tmdbExternalMovie(source, sourceId, language, resolve, reject);
 });
 
 request.get(router, '/tmdb/movie/:tmdbId', (request, response, resolve, reject) => {
     let tmdbId = util.normalizeText(request.params.tmdbId);
-    assert.defined(tmdbId);
+    assert.defined(tmdbId, 'Tmdb ID must not be empty');
     library.tmdbMovie(tmdbId, resolve, reject);
 });
 
 request.get(router, '/tmdb/genres/:language', (request, response, resolve, reject) => {
     let language = util.normalizeText(request.params.language) || 'en';
-    assert.defined(language);
-    library.tmdbMovie(language, resolve, reject);
+    assert.defined(language, 'Language must not be empty');
+    library.tmdbGenres(language, resolve, reject);
 });
-
-// router.get('/tmdb/movies/:source/:sourceId/:language?', (request, response) => { library.tmdbExternalMovie(request, response); });
-// router.get('/tmdb/movie/:tmdbId', (request, response) => { library.tmdbMovie(request, response); });
-// router.get('/tmdb/genres/:language?', (request, response) => { library.tmdbGenres(request, response); });
 
 // router.get('/library/lists', (request, response) => { });
 
@@ -96,11 +93,29 @@ request.put(router, '/library/movie/:tmdbId', (request, response, resolve, rejec
     library.addMovie(tmdbId, resolve, reject);
 });
 
-// router.put('/library/movie/:tmdbid', (request, response) => { library.addMovie(request, response); });
-// router.post('/library/movie/:uuid', (request, response) => {});
-// router.delete('/library/movie/:uuid', (request, response) => {});
+request.delete(router, '/library/movie/:uuid', (request, response, resolve, reject) => {
+    let uuid = util.normalizeText(request.params.uuid);
+    assert.defined(uuid);
+    library.removeMovie(uuid, resolve, reject);
+});
 
-// router.put('/library/import/:source/:language?', (request, response) => { library.tmdbImport(request, response); });
+request.post(router, '/library/movie/:uuid', (request, response, resolve, reject) => {
+    let uuid = util.normalizeText(request.params.uuid);
+    let data = request.body || {};
+    assert.defined(uuid);
+    assert.defined(data);
+    library.updateMovie(uuid, data, resolve, reject);
+});
+
+request.put(router, '/library/import/:source/:language?', (request, response, resolve, reject) => {
+    let source = util.normalizeParameter(request.params.source);
+    let sourceIds = request.body || [];
+    let language = util.normalizeText(request.params.language) || 'en';
+    assert.defined(source, 'Source must not be empty');
+    assert.notEmpty(sourceIds, 'Source Ids must not be empty');
+    assert.defined(language, 'Language must not be empty');
+    library.importMovies(source, sourceIds, language, resolve, reject);
+});
 
 request.get(router, '/library/stats', (request, response) => {
     response.json(library.getStats());

@@ -1,4 +1,5 @@
 let assert = require('assert');
+let util = require('./util');
 
 let Assert = function() {};
 module.exports = new Assert();
@@ -13,9 +14,23 @@ Assert.prototype.defined = function(value, message) {
 
 Assert.prototype.notEmpty = function(value, message) {
     this.defined(value);
-    assert(value != '' && value.trim() != '', message);
+    assert(Array.isArray(value) || (value != '' && value.trim() != ''), message);
 };
 
-Assert.prototype.equals = function(expected, actual) {
-    assert(expected === actual || expected == actual);
+Assert.prototype.identical = function(expected, actual, message) {
+    assert(expected === actual, message);
+};
+
+Assert.prototype.equals = function(expected, actual, message) {
+    assert(expected === actual || expected == actual, message);
+};
+
+Assert.prototype.any = function(expected, actual, message) {
+    assert(typeof expected == 'object', 'Invalid use of any; expected must be of type array');
+    assert(util.containsByEquality(expected, actual) == true, message);
+};
+
+Assert.prototype.none = function(expected, actual, message) {
+    assert(typeof expected == 'object', 'Invalid use of any; expected must be of type array');
+    assert(util.containsByEquality(expected, actual) == false, message);
 };
