@@ -167,26 +167,6 @@ Library.prototype.removeMovie = function(uuid, resolve, reject) {
         reject);
 };
 
-// ok 
-Library.prototype.withMovieDo = function(uuid, resolve, resolveNone, reject) {
-    let self = this;
-    self._onLookup(
-        'movies',
-        `With movie ${uuid} do ...`,
-        (collection) => collection.findOne({ uuid: uuid }),
-        (answer) => (answer !== null && Object.keys(answer).length > 0),
-        null,
-        (answer) => { 
-            if (answer && answer.result) {
-                resolve(answer.result);
-            } else {
-                resolveNone();
-            }
-        },
-        reject
-    );
-};
-
 // ok
 Library.prototype.getMovies = function(resolve, reject) {
     let self = this;
@@ -240,6 +220,26 @@ Library.prototype.getStats = function() {
 Library.prototype.restart = function() {
     this.scheduler.restart();
     return this.getStats();
+};
+
+// ok 
+Library.prototype.withMovieDo = function(uuid, resolve, resolveNone, reject) {
+    let self = this;
+    self._onLookup(
+        'movies',
+        `With movie ${uuid} do ...`,
+        (collection) => collection.findOne({ uuid: uuid }),
+        (answer) => (answer !== null && Object.keys(answer).length > 0),
+        null,
+        (answer) => { 
+            if (answer && answer.result) {
+                resolve(answer.result);
+            } else {
+                resolveNone();
+            }
+        },
+        reject
+    );
 };
 
 // init

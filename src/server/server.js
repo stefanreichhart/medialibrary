@@ -12,9 +12,9 @@ let util = require('./util');
 
 let library = new Library();
 library.initialize({
-    apiUrl: 'https://api.themoviedb.org/3', // todo -> db
+    apiUrl: 'https://api.themoviedb.org/3', 
     apiKey: 'QrNogGHg0WNNgH4cS5HVpcD6NgLb8wBB', // todo -> bootstrap per session
-    apiKeyTmdb: '9cc3876eae5c294c28fc147e4fd1c957',
+    apiKeyTmdb: '', // todo -> db
     mongoUrl: `mongodb://localhost:4000/medialibrary`,
     mongoCollections: [ 'tmdb/search', 'tmdb/movie', 'tmdb/external', 'tmdb/genres', 'movies', 'library/jobs' ]
 });
