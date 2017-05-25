@@ -1,5 +1,6 @@
 let path = require('path');
 let express = require('express');
+let cors = require('cors');
 let bodyParser = require('body-parser');
 
 let assert = require('./assert');
@@ -14,7 +15,7 @@ let library = new Library();
 library.initialize({
     apiUrl: 'https://api.themoviedb.org/3', 
     apiKey: 'QrNogGHg0WNNgH4cS5HVpcD6NgLb8wBB', // todo -> bootstrap per session
-    apiKeyTmdb: '', // todo -> db
+    apiKeyTmdb: '9cc3876eae5c294c28fc147e4fd1c957', // todo -> db
     mongoUrl: `mongodb://localhost:4000/medialibrary`,
     mongoCollections: [ 'tmdb/search', 'tmdb/movie', 'tmdb/external', 'tmdb/genres', 'movies', 'library/jobs' ]
 });
@@ -40,6 +41,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
 let router = express.Router();
+app.use(cors());
 app.use('/api', router);
 
 request.get(router, '/tmdb/movies/:search', (request, response, resolve, reject) => {
@@ -82,6 +84,12 @@ request.get(router, '/library/movies', (request, response, resolve, reject) => {
     library.getMovies(resolve, reject);
 });
 
+request.put(router, '/library/movies', (request, response, resolve, reject) => {
+    let tmdbIds = request.body || [];
+    assert.notEmpty(tmdbIds, 'Source Ids must not be empty');
+    library.addMovies(tmdbIds, resolve, reject);
+});
+
 request.get(router, '/library/movie/:uuid', (request, response, resolve, reject) => {
     let uuid = util.normalizeText(request.params.uuid);
     assert.defined(uuid);
@@ -113,8 +121,7 @@ request.put(router, '/library/import/:source/:language?', (request, response, re
     let sourceIds = request.body || [];
     let language = util.normalizeText(request.params.language) || 'en';
     assert.defined(source, 'Source must not be empty');
-    console.log(sourceIds);
-    //assert.notEmpty(sourceIds, 'Source Ids must not be empty');
+    assert.notEmpty(sourceIds, 'Source Ids must not be empty');
     assert.defined(language, 'Language must not be empty');
     assert.any([ 'imdb_id' /*, 'freebase_mid', 'freebase_id', 'tvdb_id', 'tvrage_id' */ ], source, `Unsupported source ${source}`);
     library.importMovies(source, sourceIds, language, resolve, reject);

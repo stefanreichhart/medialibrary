@@ -1,0 +1,14 @@
+<h1>{{appService.getTitle()}}</h1>
+
+<ul *ngIf="movies; else noMovies">
+  <li *ngFor="let movie of movies">
+    <div class="movie" [routerLink]="[ '/', 'movie', movie.uuid ]">
+      <b>{{movie.tmdb.title}}</b>
+      <img src="{{mediaService.getPoster(movie.tmdb.poster_path)}}" title="{{movie.tmdb.title}}"/>
+    </div>
+  </li>
+</ul>
+
+<ng-template #noMovies>
+  <p>No movies found</p>
+</ng-template>

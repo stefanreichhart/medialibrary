@@ -27,6 +27,7 @@ Request.prototype._handleMethod = function(fnRouter, method, url, callback) {
         assert.equals('function', typeof callback);
         console.log(message);
         fnRouter(url, (request, response) => {
+            console.log(`Handling request ${method} ${url}`);
             self._handleRequest(request, response, method, url, callback);
         });
     } catch (error) {

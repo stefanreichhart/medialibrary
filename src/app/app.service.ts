@@ -11,6 +11,10 @@ export class AppService {
   ) { 
   }
 
+  getTitle(): String {
+    return 'Media Library';
+  }
+
   goBack(): void {
     this.location.back();
   }

@@ -5,7 +5,7 @@
   "scripts": {
     "setup": "npm install",
     "db": "mkdir -p ./data/db && mongod --port 4000 --dbpath=./data/db --logpath=./data/logs/mongo.log > ./data/logs/mongo.log 2>&1",
-    "server": "node ./src/server/server.js",
+    "server": "node ./src/server/server.js > ./data/logs/server.log 2>&1",
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",

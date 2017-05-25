@@ -88,7 +88,7 @@ Library.prototype.getMovie = function(uuid, resolve, reject) {
     );
 };
 
-// ok
+// ok (expensive lookup > check)
 Library.prototype.addMovie = function(tmdbId, resolve, reject) {
     let self = this;
     let message = ` Add movie ${tmdbId}`;
@@ -100,18 +100,46 @@ Library.prototype.addMovie = function(tmdbId, resolve, reject) {
                 self._mongodb()
                     .then(db => {
                         let movies = db.collection('movies');
-                        let document = Object.assign({ uuid: uuid.generate(), tmdb: response.result });
-                        movies.save(document)
-                            .then(savedDocument => self._onResolve(resolve, document))
-                            .catch(error => self._onReject(reject, answer, error, message))
+                        movies.findOne({ 'tmdb.id': tmdbId })
+                            .then(existingDocument => {
+                                if (existingDocument === null) {
+                                    let document = Object.assign({ uuid: uuid.generate(), tmdb: response.result });
+                                    movies.save(document)
+                                        .then(savedDocument => self._onResolve(resolve, document))
+                                        .catch(error => self._onReject(reject, answer, error, message));
+                                } else {
+                                    self._onResolve(resolve, existingDocument);
+                                }
+                            })
+                            .catch(error => self._onReject(reject, answer, error, message));
                     })
                     .catch(error => self._onReject(reject, answer, error, message));
             } else {
-                self._onReject(reject, answer, null, message)
+                self._onReject(reject, answer, null, message);
             }
         },
         reject
     );
+};
+
+// TODO
+Library.prototype.addMovies = function(tmdbIds, resolve, reject) {
+    let self = this;
+    let answer = { action: 'add/movies', tmdbIds: tmdbIds };
+    let message = `Scheduling add of movies <${tmdbIds}>`;
+    try {
+        for (let i=0; i<tmdbIds.length; i++) {
+            let tmdbId = tmdbIds[i];
+            self.scheduler.add((task, onComplete, onError) => {
+                let message = `Adding movie <${tmdbId}>`;
+                console.log(message);
+                self.addMovie(tmdbId, onComplete, onError);
+            }, `add/${tmdbId}`);
+        }
+        self._onResolve(resolve, answer); 
+    } catch(error) {
+        self._onReject(reject, answer, error, message);
+    }
 };
 
 // TODO
@@ -188,7 +216,6 @@ Library.prototype.importMovies = function(source, sourceIds, language, resolve, 
     try {
         for (let i=0; i<sourceIds.length; i++) {
             let sourceId = sourceIds[i];
-            console.log(message);
             self.scheduler.add((task, onComplete, onError) => {
                 let message = `Importing movie <${sourceId}> from ${source}`;
                 console.log(message);
@@ -379,6 +406,8 @@ Library.prototype._onCacheLookup = function(name, message, parameters, fnGetDocu
                 .then(document => {
                     if (document === null) {
                         answer = Object.assign(answer, { url: url });
+                        assert.defined(self.options.apiKeyTmdb, "TMDB API Key must not be null");
+                        console.log(`Remote Lookup ${url}`);
                         http({ uri: url, json: true})
                             .then(httpResponse => {
                                 if (fnCacheCondition(httpResponse)) {

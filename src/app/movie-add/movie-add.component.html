@@ -1,0 +1,34 @@
+<input [(ngModel)]="searchInput" placeholder="Enter Movie title ..." />
+
+<div *ngIf="hasSearchInput()" (click)="reset()">
+  <i class="fa fa-times" aria-hidden="true"></i>
+</div>
+
+<button (click)="search()" [disabled]="!hasSearchText()"><i class="fa fa-search" aria-hidden="true"></i>search</button>
+
+<div *ngIf="searchText && movies">
+  <ul>
+    <li class="movie" *ngFor="let movie of movies">
+      <label>
+        <input type="checkbox" (change)="toggleSelection(movie)" />
+        <h3>{{movie.title}}</h3>
+        <h4 *ngIf="!compareService.equals(movie.title, movie.original_title)">{{movie.original_title}}</h4>
+        <app-movie-ratings [popularity]="movie.popularity" [voteAverage]="movie.vote_average" [voteCount]="movie.vote_count"></app-movie-ratings>
+        <span><i class="fa fa-calendar" aria-hidden="true"></i>{{movie.release_date | date:'dd/MM/yyyy'}}</span>
+        <div>
+          <img src="{{mediaService.getPoster(movie.poster_path)}}" />
+          <p>{{movie.overview}}</p>
+        </div>
+      </label>
+    </li>
+  </ul>
+
+  <button (click)="add()" [disabled]="!selectedMovies"><i class="fa fa-floppy-o " aria-hidden="true"></i>save</button>
+
+</div>
+
+<p *ngIf="error">
+  {{error.message}}
+</p>
+
+<app-back-button></app-back-button>
