@@ -10,7 +10,7 @@
   <ul>
     <li class="movie" *ngFor="let movie of movies">
       <label>
-        <input type="checkbox" (change)="toggleSelection(movie)" />
+        <input type="checkbox" (change)="toggleSelection(movie)" [ngClass]="{'present':canAdd(movie)}"/>
         <h3>{{movie.title}}</h3>
         <h4 *ngIf="!compareService.equals(movie.title, movie.original_title)">{{movie.original_title}}</h4>
         <app-movie-ratings [popularity]="movie.popularity" [voteAverage]="movie.vote_average" [voteCount]="movie.vote_count"></app-movie-ratings>
@@ -23,7 +23,7 @@
     </li>
   </ul>
 
-  <button (click)="add()" [disabled]="!selectedMovies"><i class="fa fa-floppy-o " aria-hidden="true"></i>save</button>
+  <button (click)="add()" [disabled]="!selectedMovies"><i class="fa fa-floppy-o " aria-hidden="true"></i>add movies</button>
 
 </div>
 

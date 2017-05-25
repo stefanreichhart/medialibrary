@@ -29,12 +29,23 @@ export class MediaService implements MediaServiceInterface {
   addMovies(movies: MoviePreview[]): void {
     let url = `${this.baseUrl}/library/movies`;
     let ids = movies.map((movie: MoviePreview) => movie.id);
-    // TODO
+    this.http.put(url, ids).subscribe((response:Response) => console.log(response));
   }
 
   addMovie(movie: MoviePreview): void {
     let url = `${this.baseUrl}/library/movie/${movie.id}`;
-    // TODO
+    this.http.put(url, '').subscribe((response:Response) => console.log(response));
+  }
+
+  removeMovie(movie: Movie): void {
+    let url = `${this.baseUrl}/library/movie/${movie.uuid}`;
+    this.http.delete(url).subscribe((response:Response) => console.log(response));
+  }
+
+  // TODO (too expensive right now)
+  containsMovie(movie: MoviePreview): boolean {
+    let url = `${this.baseUrl}/library/movie/${movie.id}`;
+    return false;
   }
 
   // TODO
@@ -53,8 +64,12 @@ export class MediaService implements MediaServiceInterface {
 
   // 92, 154, 185, 300 500, original
   getPoster(url: string, width: string) {
-    let imageWidth = this.convert.asNumber(width, 92);
-    return `http://image.tmdb.org/t/p/w${imageWidth}${url}`
+    if (url) {
+      let imageWidth = this.convert.asNumber(width, 92);
+      return `http://image.tmdb.org/t/p/w${imageWidth}${url}`
+    } else {
+      return '';
+    }
   }
 
 }

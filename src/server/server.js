@@ -86,7 +86,7 @@ request.get(router, '/library/movies', (request, response, resolve, reject) => {
 
 request.put(router, '/library/movies', (request, response, resolve, reject) => {
     let tmdbIds = request.body || [];
-    assert.notEmpty(tmdbIds, 'Source Ids must not be empty');
+    assert.array(tmdbIds, 'Source Ids must be of type array');
     library.addMovies(tmdbIds, resolve, reject);
 });
 

@@ -25,6 +25,7 @@
 
   <app-movie-ratings [popularity]="movie.tmdb.popularity" [voteAverage]="movie.tmdb.vote_average" [voteCount]="movie.tmdb.vote_count"></app-movie-ratings>
 
+  <button class="fa fa-trash" (click)="remove()">remove movie</button>
   <app-back-button></app-back-button>
   
 </div>

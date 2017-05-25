@@ -14,7 +14,7 @@ Assert.prototype.defined = function(value, message) {
 
 Assert.prototype.notEmpty = function(value, message) {
     this.defined(value);
-    assert(Array.isArray(value) || (value != '' && value.trim() != ''), message);
+    assert(value != '' && value.trim() != '', message);
 };
 
 Assert.prototype.identical = function(expected, actual, message) {
@@ -23,6 +23,10 @@ Assert.prototype.identical = function(expected, actual, message) {
 
 Assert.prototype.equals = function(expected, actual, message) {
     assert(expected === actual || expected == actual, message);
+};
+
+Assert.prototype.array = function(value, message) {
+    assert(typeof value == 'object' && Array.isArray(value), message);
 };
 
 Assert.prototype.any = function(expected, actual, message) {

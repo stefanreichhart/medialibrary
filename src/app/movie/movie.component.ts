@@ -27,4 +27,9 @@ export class MovieComponent implements OnInit {
       .subscribe(movie => this.movie = movie);
   }
 
+  private remove(): void {
+    this.mediaService.removeMovie(this.movie);
+    // TODO
+  }
+
 }

@@ -70,7 +70,10 @@ export class MovieAddComponent implements OnInit {
 
   private add(): void {
     this.mediaService.addMovies(this.selectedMovies);
-    // TODO
+  }
+
+  private canAdd(movie: MoviePreview): boolean {
+    return this.mediaService.containsMovie(movie);
   }
 
 }
