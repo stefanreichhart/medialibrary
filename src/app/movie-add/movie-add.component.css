@@ -39,3 +39,7 @@
 .movie-content-container {
     width: 85%;
 }
+
+.movie-rating {
+    float: right;
+}
