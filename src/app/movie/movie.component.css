@@ -1,0 +1,92 @@
+.movie {
+    float: left;
+    box-sizing: border-box;
+    margin: 10px;
+}
+
+.movie-poster-container,
+.movie-detail-container {
+    box-sizing: border-box; 
+    margin: 0px;
+    padding: 0px;
+    float: left;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.movie-poster {
+    width: 50%;
+    margin: 0 auto;
+    display: block;
+}
+
+.movie-detail-container {
+    table-layout: fixed;
+}
+.movie-detail-container th {
+    width: 100px;
+}
+
+.genre {
+    margin-right: 10px;
+    border: 1px solid #efefef;
+    border-radius: 10px;
+    background-color: #efefef;
+    padding: 1px 6px;
+}
+
+@media screen and (min-width: 480px) { 
+
+    .movie-poster-container {
+        width: 30%;
+        padding-right: 10px;
+    }
+    .movie-poster {
+        width: 100%;
+    }
+
+    .controls,
+    .movie-detail-container {
+        width: 70%;
+    }
+}
+
+/*
+.movie {
+    box-sizing: border-box;
+    margin: 10px;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: flex-start;
+    align-content: flex-start;
+}
+
+.movie-poster-container {
+    flex: 0 1 auto;
+    margin: 0 auto;
+}
+
+.movie-detail-container {
+    display: flex;
+    flex: 0 2 auto;
+    list-style-type: none;
+    margin: 0;
+    padding: 0px 10px;
+    table-layout: fixed;
+}
+
+@media screen and (max-width: 480px) { 
+    .movie-poster-container {
+        width: 50%;
+    }
+}
+
+@media screen and (min-width: 480px) {
+    .movie {
+        flex-wrap: nowrap;
+    }
+}
+*/

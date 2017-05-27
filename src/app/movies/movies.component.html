@@ -1,10 +1,15 @@
 <h1>{{appService.getTitle()}}</h1>
 
-<ul *ngIf="movies; else noMovies">
-  <li *ngFor="let movie of movies">
-    <div class="movie" [routerLink]="[ '/', 'movie', movie.uuid ]">
-      <b>{{movie.tmdb.title}}</b>
-      <img src="{{mediaService.getPoster(movie.tmdb.poster_path)}}" title="{{movie.tmdb.title}}"/>
+<ul *ngIf="movies; else noMovies" class="movies">
+  <li [routerLink]="[ '/', 'movies', 'add' ]" class="movie router-link">
+    <div class="movie-container">
+      <i class="fa fa-plus movie-add" aria-hidden="true"></i>
+    </div>
+  </li>
+  <li *ngFor="let movie of movies" [routerLink]="[ '/', 'movie', movie.uuid ]" class="movie router-link">
+    <div class="movie-container">
+      <img src="{{mediaService.getPoster(movie.tmdb.poster_path)}}" title="{{movie.tmdb.title}}" class="movie-poster"/>
+      <b class="movie-title">{{movie.tmdb.title}}</b>
     </div>
   </li>
 </ul>

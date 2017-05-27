@@ -2,30 +2,65 @@
 
   <h1>{{movie.tmdb.title}}</h1>
 
-  <div *ngIf="movie.tmdb.poster_path"><img src="{{mediaService.getPoster(movie.tmdb.poster_path,300)}}" />
+  <div class="movie">
+
+    <div *ngIf="movie.tmdb.poster_path" class="movie-poster-container">
+      <img src="{{mediaService.getPoster(movie.tmdb.poster_path,300)}}" class="movie-poster" />
+    </div>
+
+    <table class="movie-detail-container">
+      <tr>
+        <th>Title</th>
+        <td>{{movie.tmdb.title}}</td>
+      </tr>
+      <tr *ngIf="!compareService.equals(movie.tmdb.title, movie.tmdb.original_title)">
+        <th>Original Title</th>
+        <td>{{movie.tmdb.original_title}}</td>
+      </tr>
+      <tr>
+        <th>Original Language</th>
+        <td>{{movie.tmdb.original_language}}</td>
+      </tr>
+      <tr>
+        <th>Release Date</th>
+        <td>{{movie.tmdb.release_date | date:"dd.MM.yyyy" }}</td>
+      </tr>
+      <tr>
+        <th>Tagline</th>
+        <td>{{movie.tmdb.tagline}}</td>
+      </tr>
+      <tr>
+        <th>Description</th>
+        <td>{{movie.tmdb.overview}}</td>
+      </tr>
+      <tr *ngIf="movie.tmdb.genres">
+        <th>Genres</th>
+        <td><span *ngFor="let genre of movie.tmdb.genres" class="genre">{{genre.name}}</span></td>
+      </tr>
+      <tr>
+        <th>Runtime</th>
+        <td>{{movie.tmdb.runtime | duration:'m'}} / {{movie.tmdb.runtime | runtime}}</td>
+      </tr>
+      <tr>
+        <th>Links</th>
+        <td>
+          <ul>
+            <li><a *ngIf="movie.tmdb.imdb_id" href="http://www.imdb.com/title/{{movie.tmdb.imdb_id}}" class="link"><i class="fa fa-external-link" aria-hidden="true"></i>IMDB</a></li>
+            <li><a *ngIf="movie.tmdb.homepage" href="{{movie.tmdb.homepage}}" class="link"><i class="fa fa-external-link" aria-hidden="true"></i>{{movie.tmdb.homepage}}</a></li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <th>Ratings</th>
+        <td><app-movie-ratings [popularity]="movie.tmdb.popularity" [voteAverage]="movie.tmdb.vote_average" [voteCount]="movie.tmdb.vote_count"></app-movie-ratings></td>
+      </tr>
+    </table>
+
+    <div class="controls">
+      <app-back-button></app-back-button>
+      <a (click)="remove()" class="control primary-control"><i class="fa fa-trash" aria-hidden="true"></i>remove movie</a>
+    </div>
+
   </div>
-
-  <ul>
-    <li>Title: {{movie.tmdb.title}}</li>
-    <li *ngIf="!compareService.equals(movie.tmdb.title, movie.tmdb.original_title)">Original Title: {{movie.tmdb.original_title}}</li>
-    <li>Original Language: {{movie.tmdb.original_language}}</li>
-    <li>Release Date: {{movie.tmdb.release_date | date:"dd/MM/yyyy" }}</li>
-    <li>Tagline: {{movie.tmdb.tagline}}</li>
-    <li>Description: {{movie.tmdb.overview}}</li>
-    <li *ngIf="movie.tmdb.genres">
-      <span *ngFor="let genre of movie.tmdb.genres" class="genre">{{genre.name}}</span>
-    </li>
-    <li>Runtime: {{movie.tmdb.runtime | duration:'m'}} / {{movie.tmdb.runtime | runtime}}</li>
-  </ul>
-
-  <div>
-    <a href="http://www.imdb.com/title/{{movie.tmdb.imdb_id}}"><i class="fa fa-external-link" aria-hidden="true"></i>IMDB</a>
-    <a *ngIf="movie.tmdb.homepage" href="{{movie.tmdb.homepage}}"><i class="fa fa-external-link" aria-hidden="true"></i>IMDB</a>
-  </div>
-
-  <app-movie-ratings [popularity]="movie.tmdb.popularity" [voteAverage]="movie.tmdb.vote_average" [voteCount]="movie.tmdb.vote_count"></app-movie-ratings>
-
-  <button class="fa fa-trash" (click)="remove()">remove movie</button>
-  <app-back-button></app-back-button>
-  
+    
 </div>

@@ -14,7 +14,6 @@ import { CompareService } from '../shared/compare.service';
 export class MovieAddComponent implements OnInit {
 
   private searchInput: string;
-  private searchText: string;
   private movies: MoviePreview[];
   private selectedMovies: MoviePreview[];
   private error: any;
@@ -29,25 +28,30 @@ export class MovieAddComponent implements OnInit {
   ngOnInit() {
     this.movies = [];
     this.selectedMovies = [];
+    this.route.queryParams
+      .map(params => this.searchOnInit(params['searchText']))
+      .subscribe((any) => {}); // TODO
+  }
+
+  private searchOnInit(text: string) {
+    this.searchInput = (text || '').trim().replace(/\+/g, ' ');
+    this.search();
   }
 
   private search(): void {
     let searchText = (this.searchInput || '').trim().replace(/ /g, '+');
     if (this.shouldSearch(searchText)) {
-      this.searchText = searchText;
       this.mediaService.searchMovies(searchText).subscribe((movies: MoviePreview[]) => this.movies = movies);
-    } else {
-      this.searchText = null;
     }
   }
 
   private reset(): void {
     this.searchInput = null;
-    this.searchText = null;
+    this.movies = [];
   }
 
   private shouldSearch(searchText: string): boolean {
-    return searchText && searchText.trim() && this.searchText != searchText;
+    return !!searchText && !!searchText.trim();
   }
 
   private hasSearchInput(): boolean {
