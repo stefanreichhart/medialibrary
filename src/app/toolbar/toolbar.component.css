@@ -1,5 +1,6 @@
 .toolbar {
     position: fixed;
+    display: flex;
     width: 100%;
     padding: 10px;
     top: 0px;
@@ -7,18 +8,23 @@
     border-bottom: 1px solid #eeeeee;
     background-color: #111111;
     color: #eeeeee;
-}
-
-.menu {
-    display: block;
-    float: left;
+    box-sizing: border-box;
 }
 
 .menu > .fa {
     width: 24px;
     height: 24px;
+    font-size: 25px;
+}
+.middle {
+    flex-grow: 3;
 }
 
-.menu .fa-bars {
-    font-size: 25px;
+.left,
+.right {
+    flex-grow: 1;
+}
+
+.right {
+    text-align: right;
 }

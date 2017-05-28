@@ -1,7 +1,18 @@
 <div class="sidebar">
-  <a class="sidebar-item" [routerLink]="[ '/', 'movies', 'add' ]"><i class="fa fa-plus" aria-hidden="true"></i>Add ...</a>
+  <h2>Actions</h2>
+  <a class="sidebar-item" [routerLink]="[ '/', 'movies', 'add' ]"><i class="fa fa-plus" aria-hidden="true"></i>Add Movie ...</a>
+  <a class="sidebar-item" [routerLink]="[ '/', 'books', 'add' ]"><i class="fa fa-plus" aria-hidden="true"></i>Add Book ...</a>
+  <a class="sidebar-item" [routerLink]="[ '/', 'tv-show', 'add' ]"><i class="fa fa-plus" aria-hidden="true"></i>Add TV Show ...</a>
+  <a class="sidebar-item" [routerLink]="[ '/', 'lists', 'add' ]"><i class="fa fa-plus" aria-hidden="true"></i>Add List ...</a>
+  <hr>
   <a class="sidebar-item" [routerLink]="[ '/', 'preferences' ]"><i class="fa fa-cogs" aria-hidden="true"></i>Preferences</a>
+  <hr>
+  <a class="sidebar-item" [routerLink]="[ '/', 'preferences' ]"><i class="fa fa-sign-out" aria-hidden="true"></i>Logout</a>
 
   <h2>Library</h2>
   <a class="sidebar-item" [routerLink]="[ '/', 'movies' ]"><i class="fa fa-film" aria-hidden="true"></i>Movies</a>
+  <a class="sidebar-item" [routerLink]="[ '/', 'books' ]"><i class="fa fa-film" aria-hidden="true"></i>Books</a>
+  <a class="sidebar-item" [routerLink]="[ '/', 'tv-shows' ]"><i class="fa fa-film" aria-hidden="true"></i>TV Shows</a>
+
+  <h2>Lists</h2>
 </div>
