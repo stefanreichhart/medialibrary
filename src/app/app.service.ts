@@ -5,6 +5,7 @@ import { Location }  from '@angular/common';
 export class AppService {
 
   apiKeyTmdb: string;
+  private sidebar: boolean = false;
 
   constructor(
     private location: Location
@@ -17,6 +18,14 @@ export class AppService {
 
   goBack(): void {
     this.location.back();
+  }
+
+  toggleSidebar(): void {
+    this.sidebar = ! this.sidebar;
+  }
+
+  isSidebarVisible(): boolean {
+    return !!this.sidebar;
   }
 
 }

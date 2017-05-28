@@ -1,2 +1,7 @@
-<app-toolbar></app-toolbar>
-<router-outlet></router-outlet>
+<div class="app-container" [ngClass]="{'sidebarVisible': this.appService.isSidebarVisible()}">
+    <app-toolbar></app-toolbar>
+    <app-sidebar></app-sidebar>
+    <div class="app-content">
+        <router-outlet></router-outlet>
+    </div>
+</div>

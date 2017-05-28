@@ -1,8 +1,9 @@
 .movies {
+    box-sizing: border-box;
     float: left;
     width: 100%;
-    padding: 0px;
-    margin: 5px;
+    padding: 5px;
+    margin: 0px;
 }
 
 .movie {
@@ -31,16 +32,19 @@
         width: 25%;
     }
 }
+
 @media screen and (min-width: 720px) {
     .movie {
         width: 20%;
     }
 }
+
 @media screen and (min-width: 960px) {
     .movie {
         width: 16.6666666667%;
     }
 }
+
 @media screen and (min-width: 1100px) {
     .movie {
         width: 14.2857142857%;

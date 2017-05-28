@@ -21,6 +21,7 @@ import { RuntimePipe } from './shared/pipes/runtime.pipe';
 import { DurationPipe } from './shared/pipes/duration.pipe';
 import { MovieAddComponent } from './movie-add/movie-add.component';
 import { MovieRatingsComponent } from './movie-ratings/movie-ratings.component';
+import { SidebarComponent } from './sidebar/sidebar.component';
 
 @NgModule({
   declarations: [
@@ -34,7 +35,8 @@ import { MovieRatingsComponent } from './movie-ratings/movie-ratings.component';
     RuntimePipe,
     DurationPipe,
     MovieAddComponent,
-    MovieRatingsComponent
+    MovieRatingsComponent,
+    SidebarComponent
   ],
   imports: [
     BrowserModule,

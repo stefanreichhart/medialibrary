@@ -1,35 +1,41 @@
 <h1>Add Movies</h1>
 
-<div class="controls">
-  <div class="control-search">
-    <input [(ngModel)]="searchInput" placeholder="Enter Movie title ..." />
-    <i *ngIf="hasSearchInput()" (click)="reset()" class="fa fa-times" aria-hidden="true"></i>
-    <button (click)="search()" [disabled]="!hasSearchText()" class="control primary-control"><i class="fa fa-search" aria-hidden="true"></i>search</button>
+<div class="container">
+
+  <div class="controls">
+    <div class="control-search">
+      <input [(ngModel)]="searchInput" placeholder="Enter Movie title ..." />
+      <i *ngIf="hasSearchInput()" (click)="reset()" class="fa fa-times control-reset" aria-hidden="true"></i>
+      <button (click)="search()" [disabled]="!hasSearchText()" class="control primary-control"><i class="fa fa-search" aria-hidden="true"></i>search</button>
+    </div>
   </div>
-</div>
 
-<ul *ngIf="movies && movies.length > 0" class="movies">
-  <li class="movie" *ngFor="let movie of movies">
-    <label>
-      <div class="movie-poster-container">
-        <input type="checkbox" class="movie-toggle" (change)="toggleSelection(movie)" [ngClass]="{'present':canAdd(movie)}"/>
-        <img src="{{mediaService.getPoster(movie.poster_path)}}" class="movie-poster"/>
-      </div>
-      <div class="movie-content-container">
-        <h2>{{movie.title}}</h2>
-        <h3 *ngIf="!compareService.equals(movie.title, movie.original_title)">{{movie.original_title}}</h3>
-        <p>{{movie.overview}}</p>
-        <span class="movie-year"><i class="fa fa-calendar" aria-hidden="true"></i>{{movie.release_date | date:'dd/MM/yyyy'}}</span>
-        <app-movie-ratings class="movie-rating" [popularity]="movie.popularity" [voteAverage]="movie.vote_average" [voteCount]="movie.vote_count"></app-movie-ratings>
-      </div>
-    </label>
-  </li>
-</ul>
+  <ul *ngIf="movies && movies.length > 0" class="movies">
+    <li class="movie" [ngClass]="{'selected':isSelected(movie)}" *ngFor="let movie of movies">
+      <label>
+        <div class="movie-poster-container">
+          <input type="checkbox" class="movie-toggle" (change)="toggleSelection(movie)" [checked]="isSelected(movie)" [ngClass]="{'present':canAdd(movie)}"/>
+          <img src="{{mediaService.getPoster(movie.poster_path)}}" class="movie-poster"/>
+        </div>
+        <div class="movie-content-container">
+          <h2>{{movie.title}}</h2>
+          <h3 *ngIf="!compareService.equals(movie.title, movie.original_title)">{{movie.original_title}}</h3>
+          <p>{{movie.overview}}</p>
+          <span class="movie-year"><i class="fa fa-calendar" aria-hidden="true"></i>{{movie.release_date | date:'dd/MM/yyyy'}}</span>
+          <app-movie-ratings class="movie-rating" [popularity]="movie.popularity" [voteAverage]="movie.vote_average" [voteCount]="movie.vote_count"></app-movie-ratings>
+        </div>
+      </label>
+    </li>
+  </ul>
 
-<div class="controls">
-  <app-back-button></app-back-button>
-  <button *ngIf="movies && movies.length > 0" (click)="add()" [disabled]="!selectedMovies" class="control primary-control"><i class="fa fa-floppy-o " aria-hidden="true"></i>Add Movies</button>
-  <p *ngIf="error">
-    {{error.message}}
-  </p>
+  <div class="controls">
+    <app-back-button></app-back-button>
+    <button *ngIf="movies && movies.length > 0" (click)="selectAll()" class="control"><i class="fa fa-check-square-o" aria-hidden="true"></i>select all</button>
+    <button *ngIf="movies && movies.length > 0" (click)="selectNone()" class="control"><i class="fa fa-square-o" aria-hidden="true"></i>select none</button>
+    <button *ngIf="movies && movies.length > 0" (click)="add()" [disabled]="!selectedMovies" class="control primary-control"><i class="fa fa-floppy-o " aria-hidden="true"></i>add movies</button>
+    <p *ngIf="error">
+      {{error.message}}
+    </p>
+  </div>
+
 </div>

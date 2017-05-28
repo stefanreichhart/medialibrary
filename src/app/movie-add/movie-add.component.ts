@@ -72,6 +72,18 @@ export class MovieAddComponent implements OnInit {
     }
   }
 
+  private isSelected(movie: MoviePreview): boolean {
+    return this.selectedMovies.filter(each => each === movie).length > 0;
+  }
+
+  private selectAll(): void {
+    this.selectedMovies = this.movies.slice();
+  }
+
+  private selectNone(): void {
+    this.selectedMovies = [];
+  }
+
   private add(): void {
     this.mediaService.addMovies(this.selectedMovies);
   }

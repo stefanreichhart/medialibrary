@@ -1,0 +1,24 @@
+.toolbar {
+    position: fixed;
+    width: 100%;
+    padding: 10px;
+    top: 0px;
+    left: 0px;
+    border-bottom: 1px solid #eeeeee;
+    background-color: #111111;
+    color: #eeeeee;
+}
+
+.menu {
+    display: block;
+    float: left;
+}
+
+.menu > .fa {
+    width: 24px;
+    height: 24px;
+}
+
+.menu .fa-bars {
+    font-size: 25px;
+}
